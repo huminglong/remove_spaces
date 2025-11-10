@@ -1,0 +1,383 @@
+import sys
+import os
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
+                             QHBoxLayout, QPushButton, QTextEdit, QLabel, 
+                             QFileDialog, QMessageBox, QProgressBar, 
+                             QGroupBox, QSplitter, QTableWidget, QTableWidgetItem)
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtGui import QFont, QIcon
+
+from src.document_processor import DocumentProcessor
+from src.space_cleaner import SpaceCleaner
+
+
+class ProcessingThread(QThread):
+    """处理线程，用于在后台处理文档"""
+    progress_updated = pyqtSignal(int)
+    processing_completed = pyqtSignal(list, dict)
+    error_occurred = pyqtSignal(str)
+    
+    def __init__(self, processor, cleaner, file_path):
+        super().__init__()
+        self.processor = processor
+        self.cleaner = cleaner
+        self.file_path = file_path
+    
+    def run(self):
+        try:
+            # 加载文档
+            self.progress_updated.emit(10)
+            
+            if not self.processor.load_document(self.file_path):
+                self.error_occurred.emit("无法加载文档")
+                return
+            
+            # 获取所有文本
+            self.progress_updated.emit(30)
+            texts = self.processor.get_all_text()
+            
+            if not texts:
+                self.error_occurred.emit("文档中没有找到文本内容")
+                return
+            
+            # 清理文本
+            self.progress_updated.emit(50)
+            results = self.cleaner.clean_multiple_texts(texts)
+            
+            # 获取统计信息
+            self.progress_updated.emit(80)
+            statistics = self.cleaner.get_processing_statistics(results)
+            
+            self.progress_updated.emit(100)
+            self.processing_completed.emit(results, statistics)
+            
+        except Exception as e:
+            self.error_occurred.emit(f"处理过程中发生错误: {str(e)}")
+
+
+class MainWindow(QMainWindow):
+    """主窗口类"""
+    
+    def __init__(self):
+        super().__init__()
+        self.processor = DocumentProcessor()
+        self.cleaner = SpaceCleaner()
+        self.current_file_path = None
+        self.processing_results = []
+        
+        self.init_ui()
+    
+    def init_ui(self):
+        """初始化用户界面"""
+        self.setWindowTitle('Word文档中英文空格清理工具')
+        self.setGeometry(100, 100, 1200, 800)
+        
+        # 设置应用图标
+        # self.setWindowIcon(QIcon('icon.png'))
+        
+        # 创建中央部件
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        # 创建主布局
+        main_layout = QVBoxLayout(central_widget)
+        
+        # 创建工具栏
+        self.create_toolbar(main_layout)
+        
+        # 创建主要内容区域
+        self.create_main_content(main_layout)
+        
+        # 创建状态栏
+        self.create_status_bar()
+        
+        self.show()
+    
+    def create_toolbar(self, parent_layout):
+        """创建工具栏"""
+        toolbar_layout = QHBoxLayout()
+        
+        # 打开文件按钮
+        self.open_btn = QPushButton('打开Word文档')
+        self.open_btn.clicked.connect(self.open_file)
+        toolbar_layout.addWidget(self.open_btn)
+        
+        # 处理按钮
+        self.process_btn = QPushButton('处理文档')
+        self.process_btn.clicked.connect(self.process_document)
+        self.process_btn.setEnabled(False)
+        toolbar_layout.addWidget(self.process_btn)
+        
+        # 保存按钮
+        self.save_btn = QPushButton('保存处理结果')
+        self.save_btn.clicked.connect(self.save_results)
+        self.save_btn.setEnabled(False)
+        toolbar_layout.addWidget(self.save_btn)
+        
+        toolbar_layout.addStretch()
+        
+        parent_layout.addLayout(toolbar_layout)
+    
+    def create_main_content(self, parent_layout):
+        """创建主要内容区域"""
+        # 创建分割器
+        splitter = QSplitter(Qt.Horizontal)
+        
+        # 左侧：原始文本
+        left_group = QGroupBox("原始文本")
+        left_layout = QVBoxLayout()
+        
+        self.original_text_edit = QTextEdit()
+        self.original_text_edit.setReadOnly(True)
+        self.original_text_edit.setFont(QFont("Consolas", 10))
+        left_layout.addWidget(self.original_text_edit)
+        
+        left_group.setLayout(left_layout)
+        splitter.addWidget(left_group)
+        
+        # 右侧：处理后的文本
+        right_group = QGroupBox("处理后的文本")
+        right_layout = QVBoxLayout()
+        
+        self.processed_text_edit = QTextEdit()
+        self.processed_text_edit.setReadOnly(True)
+        self.processed_text_edit.setFont(QFont("Consolas", 10))
+        right_layout.addWidget(self.processed_text_edit)
+        
+        right_group.setLayout(right_layout)
+        splitter.addWidget(right_group)
+        
+        # 设置分割器比例
+        splitter.setSizes([600, 600])
+        
+        parent_layout.addWidget(splitter)
+        
+        # 底部：统计信息和进度条
+        bottom_layout = QVBoxLayout()
+        
+        # 统计标签
+        self.stats_label = QLabel("统计信息: 未加载文档")
+        bottom_layout.addWidget(self.stats_label)
+        
+        # 进度条
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        bottom_layout.addWidget(self.progress_bar)
+        
+        # 详细信息表格
+        self.details_table = QTableWidget()
+        self.details_table.setColumnCount(4)
+        self.details_table.setHorizontalHeaderLabels(['原始文本', '处理后文本', '移除空格数', '变更详情'])
+        self.details_table.setVisible(False)
+        bottom_layout.addWidget(self.details_table)
+        
+        parent_layout.addLayout(bottom_layout)
+    
+    def create_status_bar(self):
+        """创建状态栏"""
+        self.statusBar().showMessage('就绪')
+    
+    def open_file(self):
+        """打开Word文档"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, 
+            "选择Word文档", 
+            "", 
+            "Word文档 (*.docx);;所有文件 (*)"
+        )
+        
+        if file_path:
+            self.current_file_path = file_path
+            self.load_document_preview(file_path)
+    
+    def load_document_preview(self, file_path):
+        """加载文档并显示预览"""
+        try:
+            # 加载文档
+            if not self.processor.load_document(file_path):
+                QMessageBox.critical(self, "错误", "无法加载文档")
+                return
+            
+            # 获取文档信息
+            doc_info = self.processor.get_document_info()
+            
+            # 获取所有文本
+            texts = self.processor.get_all_text()
+            
+            # 显示原始文本
+            self.original_text_edit.clear()
+            for i, text in enumerate(texts):
+                self.original_text_edit.append(f"=== 文本段 {i+1} ===")
+                self.original_text_edit.append(text)
+                self.original_text_edit.append("")
+            
+            # 更新统计信息
+            self.stats_label.setText(
+                f"文档信息: 段落数={doc_info.get('paragraph_count', 0)}, "
+                f"表格数={doc_info.get('table_count', 0)}, "
+                f"文本项数={doc_info.get('total_text_items', 0)}"
+            )
+            
+            # 启用处理按钮
+            self.process_btn.setEnabled(True)
+            
+            self.statusBar().showMessage(f"已加载: {os.path.basename(file_path)}")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"加载文档时发生错误: {str(e)}")
+    
+    def process_document(self):
+        """处理文档"""
+        if not self.current_file_path:
+            return
+        
+        # 显示进度条
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(0)
+        
+        # 禁用按钮
+        self.process_btn.setEnabled(False)
+        self.open_btn.setEnabled(False)
+        
+        # 创建处理线程
+        self.processing_thread = ProcessingThread(
+            self.processor, self.cleaner, self.current_file_path
+        )
+        
+        self.processing_thread.progress_updated.connect(self.update_progress)
+        self.processing_thread.processing_completed.connect(self.processing_finished)
+        self.processing_thread.error_occurred.connect(self.processing_error)
+        
+        self.processing_thread.start()
+    
+    def update_progress(self, value):
+        """更新进度条"""
+        self.progress_bar.setValue(value)
+    
+    def processing_finished(self, results, statistics):
+        """处理完成"""
+        self.processing_results = results
+        
+        # 显示处理后的文本
+        self.processed_text_edit.clear()
+        for i, result in enumerate(results):
+            self.processed_text_edit.append(f"=== 处理后的文本段 {i+1} ===")
+            self.processed_text_edit.append(result['cleaned_text'])
+            self.processed_text_edit.append("")
+        
+        # 显示统计信息
+        stats_text = (
+            f"处理统计: 总文本数={statistics['total_texts']}, "
+            f"有变更文本数={statistics['texts_with_changes']}, "
+            f"总移除空格数={statistics['total_spaces_removed']}, "
+            f"变更率={statistics['change_rate']:.1f}%"
+        )
+        self.stats_label.setText(stats_text)
+        
+        # 显示详细信息
+        self.show_details_table(results)
+        
+        # 隐藏进度条，启用按钮
+        self.progress_bar.setVisible(False)
+        self.process_btn.setEnabled(True)
+        self.open_btn.setEnabled(True)
+        self.save_btn.setEnabled(True)
+        
+        self.statusBar().showMessage("处理完成")
+        
+        QMessageBox.information(self, "完成", "文档处理完成！")
+    
+    def processing_error(self, error_message):
+        """处理错误"""
+        self.progress_bar.setVisible(False)
+        self.process_btn.setEnabled(True)
+        self.open_btn.setEnabled(True)
+        
+        QMessageBox.critical(self, "错误", error_message)
+    
+    def show_details_table(self, results):
+        """显示详细信息表格"""
+        self.details_table.setVisible(True)
+        self.details_table.setRowCount(len(results))
+        
+        for i, result in enumerate(results):
+            # 原始文本（截断显示）
+            original_text = result['original_text'][:100] + "..." if len(result['original_text']) > 100 else result['original_text']
+            self.details_table.setItem(i, 0, QTableWidgetItem(original_text))
+            
+            # 处理后文本（截断显示）
+            cleaned_text = result['cleaned_text'][:100] + "..." if len(result['cleaned_text']) > 100 else result['cleaned_text']
+            self.details_table.setItem(i, 1, QTableWidgetItem(cleaned_text))
+            
+            # 移除空格数
+            self.details_table.setItem(i, 2, QTableWidgetItem(str(result['spaces_removed'])))
+            
+            # 变更详情
+            changes_detail = "; ".join([change['description'] for change in result['changes']])
+            self.details_table.setItem(i, 3, QTableWidgetItem(changes_detail))
+        
+        self.details_table.resizeColumnsToContents()
+    
+    def save_results(self):
+        """保存处理结果到processed_documents文件夹"""
+        if not self.processing_results or not self.current_file_path:
+            return
+        
+        # 生成默认文件名和保存路径
+        base_name = os.path.basename(self.current_file_path)
+        name_parts = os.path.splitext(base_name)
+        default_name = f"{name_parts[0]}_cleaned{name_parts[1]}"
+        
+        # 构建processed_documents文件夹的完整路径
+        project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        processed_dir = os.path.join(project_dir, "processed_documents")
+        
+        # 如果文件夹不存在则创建
+        if not os.path.exists(processed_dir):
+            os.makedirs(processed_dir)
+        
+        # 构建默认保存路径
+        default_path = os.path.join(processed_dir, default_name)
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "保存处理后的文档",
+            default_path,
+            "Word文档 (*.docx);;所有文件 (*)"
+        )
+        
+        if file_path:
+            try:
+                # 获取清理后的文本
+                cleaned_texts = [result['cleaned_text'] for result in self.processing_results]
+                
+                # 保存文档（保持所有格式不变）
+                if self.processor.save_as_new_document(file_path, cleaned_texts):
+                    # 显示相对路径，更友好
+                    rel_path = os.path.relpath(file_path, project_dir)
+                    QMessageBox.information(self, "成功", f"文档已保存到:\n{rel_path}")
+                    self.statusBar().showMessage(f"已保存: {os.path.basename(file_path)}")
+                else:
+                    QMessageBox.critical(self, "错误", "保存文档失败")
+                    
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"保存文档时发生错误: {str(e)}")
+    
+
+
+
+def main():
+    """主函数"""
+    app = QApplication(sys.argv)
+    
+    # 设置应用样式
+    app.setStyle('Fusion')
+    
+    # 创建并显示主窗口
+    main_window = MainWindow()
+    
+    sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    main()
