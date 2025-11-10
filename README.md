@@ -9,13 +9,12 @@
 - ✅ 保留英文单词间的正常空格
 - ✅ **严格保持文档格式不变** - 字体、字号、颜色、样式等所有格式信息完全保留
 - ✅ **保持文档结构完整** - 段落、表格、图片等非文字元素保持不变
-- ✅ 支持批量处理多个Word文档
 - ✅ 用户友好的图形界面
-- ✅ 处理结果预览功能
+- ✅ 实时文本对比显示
 - ✅ 详细的处理统计信息
 
 ## 技术栈
-- **Python 3.11** (推荐版本)
+- **Python 3.11** (推荐版本，实际测试版本)
 - python-docx: Word文档解析和处理
 - PyQt5: 图形用户界面
 - pytest: 单元测试框架
@@ -34,16 +33,26 @@ pip install -r requirements.txt
 
 ## 使用方法
 1. **启动程序**：`python main.py`
-2. **选择文档**：点击"打开文档"按钮选择要处理的Word文档
-3. **预览效果**：点击"预览效果"查看处理前后的对比
-4. **处理文档**：点击"处理文档"开始清理空格
-5. **保存结果**：点击"保存结果"将处理后的文档保存到新文件
+2. **选择文档**：点击"打开Word文档"按钮选择要处理的Word文档
+3. **查看原始内容**：系统自动显示文档的原始文本内容
+4. **处理文档**：点击"处理文档"开始清理空格，系统会显示处理进度
+5. **查看结果**：处理完成后，右侧会显示处理后的文本对比
+6. **保存结果**：点击"保存结果"将处理后的文档保存到新文件
+
+### 使用示例
+**处理前**：`这是一个 test 文档 包含 machine learning 机器学习 内容`
+**处理后**：`这是一个test文档包含machine learning机器学习内容`
+
+- ✅ 移除了中英文之间的空格：`test → 文档`
+- ✅ 移除了中英文之间的空格：`learning → 机器学习`  
+- ✅ 保留了英文单词间的空格：`machine learning`
 
 ## 项目结构
 ```
 remove_spaces/
 ├── main.py                    # 主程序入口
 ├── requirements.txt           # 依赖包列表
+├── .gitignore                # Git忽略文件
 ├── src/                       # 核心源码目录
 │   ├── __init__.py
 │   ├── document_processor.py  # 文档处理核心模块（保持格式不变）
@@ -57,7 +66,7 @@ remove_spaces/
 │   ├── run_tests.py          # 测试运行脚本
 │   └── test_processor.py     # 单元测试
 ├── README.md                  # 项目说明文档
-└── 实施文档.md               # 详细实施文档
+└── 实施文档.md               # 详细技术实施文档
 ```
 
 ## 核心特性详解
@@ -79,16 +88,59 @@ remove_spaces/
 - 变更率百分比
 - 每个变更的详细说明
 
+## 测试
+```bash
+# 运行所有测试
+python tests/run_tests.py
+
+# 运行pytest测试
+pytest tests/test_processor.py -v
+
+# 运行特定测试
+pytest tests/test_processor.py::TestTextAnalyzer::test_chinese_char_detection -v
+```
+
+## 故障排除
+
+### 常见问题
+1. **依赖安装失败**
+   ```bash
+   # 升级pip
+   python -m pip install --upgrade pip
+   
+   # 重新安装依赖
+   pip install -r requirements.txt --force-reinstall
+   ```
+
+2. **程序无法启动**
+   - 检查Python版本是否为3.11（实际测试版本）
+   - 确认已安装PyQt5：`pip install PyQt5`
+   - 在Windows上可能需要安装Microsoft Visual C++ 运行库
+
+3. **文档处理失败**
+   - 确认文档是`.docx`格式（不支持`.doc`）
+   - 检查文档是否损坏
+   - 确认文档没有被其他程序占用
+
 ## 开发环境
-- **Python版本**: 3.11 (已测试兼容)
+- **Python版本**: 3.11 (实际测试版本)
 - **操作系统**: Windows/Linux/MacOS
-- **IDE支持**: PyCharm、VS Code等
+- **IDE支持**: PyPy、VS Code等
+
+## 贡献指南
+1. Fork项目
+2. 创建特性分支：`git checkout -b feature-name`
+3. 提交修改：`git commit -am 'Add some feature'`
+4. 推送到分支：`git push origin feature-name`
+5. 提交Pull Request
 
 ## 注意事项
 - 仅支持 `.docx` 格式的Word文档
 - 处理过程中原文档不会被修改，结果保存到新文件
 - 建议在处理重要文档前先进行备份
+- 程序会自动在项目目录下创建`processed_documents`文件夹保存处理结果
 
 ## 更新日志
 - **v1.0**: 基础功能实现，支持中英文边界空格清理
 - **v2.0**: 重构文档处理器，实现严格的格式保持机制
+- **v2.1**: 优化用户界面，添加处理进度显示和详细信息表格
