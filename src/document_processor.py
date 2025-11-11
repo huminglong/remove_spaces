@@ -15,7 +15,6 @@
 import docx
 from typing import List, Dict, Tuple
 import re
-from space_cleaner import SpaceCleaner
 
 
 class DocumentProcessor:
@@ -190,11 +189,63 @@ class DocumentProcessor:
     
     def _update_paragraph_text(self, paragraph, new_text: str) -> None:
         """更新段落文本，保持所有格式属性不变"""
-        # 清空段落内容但保持格式
-        paragraph.clear()
+        # 基于run级别更新文本，保持原有格式
+        if not paragraph.runs:
+            # 如果没有runs，直接添加
+            paragraph.add_run(new_text)
+            return
         
-        # 添加新的文本内容
-        paragraph.add_run(new_text)
+        # 计算原始文本与新文本的映射关系
+        original_text = paragraph.text
+        
+        # 如果文本未改变，不做任何处理
+        if original_text == new_text:
+            return
+        
+        # 获取所有runs的格式信息
+        runs_info = []
+        for run in paragraph.runs:
+            runs_info.append({
+                'text': run.text,
+                'bold': run.bold,
+                'italic': run.italic,
+                'underline': run.underline,
+                'font_name': run.font.name,
+                'font_size': run.font.size,
+                'font_color': run.font.color.rgb if run.font.color.rgb else None,
+            })
+        
+        # 清空runs，但保持段落属性
+        for run in paragraph.runs:
+            r = run._element
+            r.getparent().remove(r)
+        
+        # 如果只有一个run，直接替换其文本并保持格式
+        if len(runs_info) == 1:
+            new_run = paragraph.add_run(new_text)
+            run_info = runs_info[0]
+            new_run.bold = run_info['bold']
+            new_run.italic = run_info['italic']
+            new_run.underline = run_info['underline']
+            if run_info['font_name']:
+                new_run.font.name = run_info['font_name']
+            if run_info['font_size']:
+                new_run.font.size = run_info['font_size']
+            if run_info['font_color']:
+                new_run.font.color.rgb = run_info['font_color']
+        else:
+            # 多个runs的情况：使用第一个run的格式应用于所有新文本
+            run_info = runs_info[0]
+            new_run = paragraph.add_run(new_text)
+            new_run.bold = run_info['bold']
+            new_run.italic = run_info['italic']
+            new_run.underline = run_info['underline']
+            if run_info['font_name']:
+                new_run.font.name = run_info['font_name']
+            if run_info['font_size']:
+                new_run.font.size = run_info['font_size']
+            if run_info['font_color']:
+                new_run.font.color.rgb = run_info['font_color']
     
     def _update_cell_text(self, cell, new_text: str) -> None:
         """更新单元格文本，保持所有格式属性不变"""

@@ -23,27 +23,6 @@ except ImportError as e:
     sys.exit(1)
 
 
-def main():
-    """
-    主函数，启动GUI应用程序
-
-    该函数负责启动Word文档中英文空格清理工具的图形用户界面，
-    包括创建应用程序实例和显示主窗口。
-
-    Returns:
-        无返回值，程序正常退出时返回0，异常时返回1
-    """
-    app = QApplication(sys.argv)
-
-    # 设置应用样式
-    app.setStyle('Fusion')
-
-    # 创建并显示主窗口
-    main_window = MainWindow()
-
-    sys.exit(app.exec_())
-
-
 if __name__ == '__main__':
     try:
         main()
