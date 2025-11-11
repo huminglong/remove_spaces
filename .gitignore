@@ -11,3 +11,4 @@ tests/__pycache__/
 
 processed_documents/
 .kilocode/mcp.json
+__pycache__/

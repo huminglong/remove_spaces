@@ -1,3 +1,14 @@
+"""
+文件名: tests/test_processor.py
+功能描述: 使用pytest框架的单元测试文件，包含文本分析器、空格清理器、文档处理器和集成测试
+主要函数: 无（pytest测试方法）
+主要类:
+  - TestTextAnalyzer: 文本分析器测试类
+  - TestSpaceCleaner: 空格清理器测试类
+  - TestDocumentProcessor: 文档处理器测试类
+  - TestIntegration: 集成测试类
+"""
+
 import pytest
 import sys
 import os
@@ -11,10 +22,18 @@ from document_processor import DocumentProcessor
 
 
 class TestTextAnalyzer:
-    """测试文本分析器"""
-    
+    """
+    测试文本分析器
+
+    包含文本分析器的所有单元测试，包括字符识别、边界检测等功能。
+    """
+
     def setup_method(self):
-        """设置测试方法"""
+        """
+        设置测试方法
+
+        在每个测试方法执行前创建TextAnalyzer实例。
+        """
         self.analyzer = TextAnalyzer()
     
     def test_chinese_char_detection(self):

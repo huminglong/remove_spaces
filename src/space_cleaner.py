@@ -1,11 +1,35 @@
+"""
+文件名: src/space_cleaner.py
+功能描述: 空格清理器，负责识别和移除中英文边界处的多余空格，同时保留英文单词间的正常空格
+主要函数:
+  - clean_text(): 清理单个文本中的中英文边界空格
+  - clean_multiple_texts(): 批量清理多个文本
+  - get_processing_statistics(): 获取处理统计信息
+主要类:
+  - SpaceCleaner: 空格清理核心类
+"""
+
 from typing import List, Dict, Tuple
 from text_analyzer import TextAnalyzer
 
 
 class SpaceCleaner:
-    """空格清理器，负责移除中英文边界的多余空格"""
-    
+    """
+    空格清理器，负责移除中英文边界的多余空格
+
+    该类使用文本分析器识别中英文边界处的多余空格，并进行清理，
+    同时保留英文单词间的正常空格。
+
+    Attributes:
+        analyzer: TextAnalyzer实例，用于文本分析
+    """
+
     def __init__(self):
+        """
+        初始化空格清理器
+
+        创建SpaceCleaner实例并初始化文本分析器。
+        """
         self.analyzer = TextAnalyzer()
     
     def clean_text(self, text: str) -> Dict:

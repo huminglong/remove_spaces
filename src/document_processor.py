@@ -1,3 +1,17 @@
+"""
+文件名: src/document_processor.py
+功能描述: Word文档处理器，负责读取、分析和修改Word文档内容，保持文档格式不变
+主要函数:
+  - load_document(): 加载Word文档
+  - get_all_text(): 获取文档中的所有文本内容
+  - update_text_content(): 更新文档中的文本内容
+  - save_document(): 保存文档到指定路径
+  - save_as_new_document(): 创建新文档并保存处理后的文本
+  - get_document_info(): 获取文档基本信息
+主要类:
+  - DocumentProcessor: Word文档处理核心类
+"""
+
 import docx
 from typing import List, Dict, Tuple
 import re
@@ -5,12 +19,23 @@ from space_cleaner import SpaceCleaner
 
 
 class DocumentProcessor:
-    """Word文档处理器，负责读取和写入Word文档
-    
-    重要原则：只修改文字内容，严格保持文档的所有格式、样式、图片等非文字元素不变
     """
-    
+    Word文档处理器，负责读取和写入Word文档
+
+    该类提供Word文档的加载、文本提取、内容更新和保存功能。
+    重要原则：只修改文字内容，严格保持文档的所有格式、样式、图片等非文字元素不变。
+
+    Attributes:
+        document: 加载的Word文档对象
+        original_structure: 文档的原始结构信息
+    """
+
     def __init__(self):
+        """
+        初始化文档处理器
+
+        创建DocumentProcessor实例，初始化文档和结构存储。
+        """
         self.document = None
         self.original_structure = []
     
@@ -33,9 +58,14 @@ class DocumentProcessor:
             return False
     
     def _extract_document_structure(self) -> None:
-        """提取文档的完整结构，包括所有格式信息"""
+        """
+        提取文档的完整结构，包括所有格式信息
+
+        遍历文档的所有段落和表格，保存其原始结构、文本内容和格式信息，
+        为后续的文本更新操作提供基础。
+        """
         self.original_structure = []
-        
+
         # 提取段落及其完整结构
         for para in self.document.paragraphs:
             if para.text.strip():  # 只处理非空段落
@@ -45,7 +75,7 @@ class DocumentProcessor:
                     'original_text': para.text,
                     'runs': self._extract_runs(para)
                 })
-        
+
         # 提取表格及其完整结构
         for table in self.document.tables:
             table_structure = {
@@ -53,7 +83,7 @@ class DocumentProcessor:
                 'table': table,  # 保存表格对象引用
                 'rows': []
             }
-            
+
             for row in table.rows:
                 row_data = []
                 for cell in row.cells:
@@ -62,7 +92,7 @@ class DocumentProcessor:
                         'original_text': cell.text,
                         'paragraphs': []
                     }
-                    
+
                     # 提取单元格中的所有段落
                     for para in cell.paragraphs:
                         if para.text.strip():
@@ -71,12 +101,12 @@ class DocumentProcessor:
                                 'original_text': para.text,
                                 'runs': self._extract_runs(para)
                             })
-                    
+
                     row_data.append(cell_data)
-                
+
                 if row_data:
                     table_structure['rows'].append(row_data)
-            
+
             if table_structure['rows']:
                 self.original_structure.append(table_structure)
     

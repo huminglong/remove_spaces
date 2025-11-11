@@ -1,17 +1,47 @@
+"""
+文件名: src/text_analyzer.py
+功能描述: 文本分析器，负责识别中英文字符、边界位置和文本特征分析
+主要函数:
+  - is_chinese_char(): 判断字符是否为中文
+  - is_english_char(): 判断字符是否为英文
+  - is_whitespace(): 判断字符是否为空白字符
+  - find_chinese_english_boundaries(): 查找中英文边界位置
+  - analyze_text(): 分析文本特征
+  - get_text_segments(): 将文本分割为不同语言段
+主要类:
+  - TextAnalyzer: 文本分析核心类
+"""
+
 import re
 from typing import List, Tuple, Dict
 
 
 class TextAnalyzer:
-    """文本分析器，负责识别中英文边界"""
-    
+    """
+    文本分析器，负责识别中英文边界
+
+    该类提供文本分析功能，包括字符类型识别、中英文边界检测、
+    文本分段等，为空格清理提供基础分析支持。
+
+    Attributes:
+        chinese_pattern: 中文字符的正则表达式模式
+        english_chars: 英文字符集合
+        chinese_regex: 编译后的中文字符正则表达式
+        whitespace_regex: 编译后的空白字符正则表达式
+    """
+
     def __init__(self):
+        """
+        初始化文本分析器
+
+        设置中文和英文字符的识别模式，编译正则表达式以提高性能。
+        """
         # 中文字符范围（Unicode编码）- 简化的常用中文字符范围
         self.chinese_pattern = r'[\u4e00-\u9fff]'
-        
+
         # 英文字符（包括字母、数字、常见符号）
         self.english_chars = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?')
-        
+
         # 编译正则表达式以提高性能
         self.chinese_regex = re.compile(self.chinese_pattern)
         self.whitespace_regex = re.compile(r'\s+')

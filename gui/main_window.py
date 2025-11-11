@@ -1,9 +1,19 @@
+"""
+文件名: gui/main_window.py
+功能描述: 主窗口GUI实现，包含文档处理的用户界面和处理逻辑
+主要函数:
+  - main(): 应用程序主入口函数
+主要类:
+  - ProcessingThread: 后台文档处理线程
+  - MainWindow: 主应用程序窗口类
+"""
+
 import sys
 import os
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                             QHBoxLayout, QPushButton, QTextEdit, QLabel, 
-                             QFileDialog, QMessageBox, QProgressBar, 
-                             QGroupBox, QSplitter, QTableWidget, QTableWidgetItem)
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
+                              QHBoxLayout, QPushButton, QTextEdit, QLabel,
+                              QFileDialog, QMessageBox, QProgressBar,
+                              QGroupBox, QSplitter, QTableWidget, QTableWidgetItem)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QFont, QIcon
 
@@ -12,110 +22,168 @@ from src.space_cleaner import SpaceCleaner
 
 
 class ProcessingThread(QThread):
-    """处理线程，用于在后台处理文档"""
+    """
+    处理线程，用于在后台处理文档
+
+    该线程类负责在后台执行文档处理任务，包括加载文档、
+    清理文本和生成统计信息，避免阻塞主UI线程。
+
+    Attributes:
+        progress_updated: 进度更新信号，参数为进度百分比(0-100)
+        processing_completed: 处理完成信号，参数为(结果列表, 统计信息字典)
+        error_occurred: 错误发生信号，参数为错误消息字符串
+    """
     progress_updated = pyqtSignal(int)
     processing_completed = pyqtSignal(list, dict)
     error_occurred = pyqtSignal(str)
     
     def __init__(self, processor, cleaner, file_path):
+        """
+        初始化处理线程
+
+        Args:
+            processor: DocumentProcessor实例，用于处理Word文档
+            cleaner: SpaceCleaner实例，用于清理文本空格
+            file_path: 要处理的文档文件路径
+        """
         super().__init__()
         self.processor = processor
         self.cleaner = cleaner
         self.file_path = file_path
     
     def run(self):
+        """
+        执行文档处理任务
+
+        该方法在后台线程中执行完整的文档处理流程：
+        1. 加载Word文档
+        2. 提取所有文本内容
+        3. 清理中英文边界空格
+        4. 生成处理统计信息
+
+        处理过程中会通过信号实时报告进度，处理完成后发送结果或错误信息。
+        """
         try:
             # 加载文档
             self.progress_updated.emit(10)
-            
+
             if not self.processor.load_document(self.file_path):
                 self.error_occurred.emit("无法加载文档")
                 return
-            
+
             # 获取所有文本
             self.progress_updated.emit(30)
             texts = self.processor.get_all_text()
-            
+
             if not texts:
                 self.error_occurred.emit("文档中没有找到文本内容")
                 return
-            
+
             # 清理文本
             self.progress_updated.emit(50)
             results = self.cleaner.clean_multiple_texts(texts)
-            
+
             # 获取统计信息
             self.progress_updated.emit(80)
             statistics = self.cleaner.get_processing_statistics(results)
-            
+
             self.progress_updated.emit(100)
             self.processing_completed.emit(results, statistics)
-            
+
         except Exception as e:
             self.error_occurred.emit(f"处理过程中发生错误: {str(e)}")
 
 
 class MainWindow(QMainWindow):
-    """主窗口类"""
-    
+    """
+    主窗口类
+
+    该类实现Word文档中英文空格清理工具的图形用户界面，
+    提供文档加载、处理、预览和保存等功能。
+
+    Attributes:
+        processor: DocumentProcessor实例，用于处理Word文档
+        cleaner: SpaceCleaner实例，用于清理文本空格
+        current_file_path: 当前加载的文档路径
+        processing_results: 文档处理结果列表
+    """
+
     def __init__(self):
+        """
+        初始化主窗口
+
+        创建必要的组件实例并初始化用户界面。
+        """
         super().__init__()
         self.processor = DocumentProcessor()
         self.cleaner = SpaceCleaner()
         self.current_file_path = None
         self.processing_results = []
-        
+
         self.init_ui()
     
     def init_ui(self):
-        """初始化用户界面"""
+        """
+        初始化用户界面
+
+        设置窗口基本属性，创建并布局所有UI组件，包括工具栏、
+        主要内容区域和状态栏。
+        """
         self.setWindowTitle('Word文档中英文空格清理工具')
         self.setGeometry(100, 100, 1200, 800)
-        
+
         # 设置应用图标
         # self.setWindowIcon(QIcon('icon.png'))
-        
+
         # 创建中央部件
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        
+
         # 创建主布局
         main_layout = QVBoxLayout(central_widget)
-        
+
         # 创建工具栏
         self.create_toolbar(main_layout)
-        
+
         # 创建主要内容区域
         self.create_main_content(main_layout)
-        
+
         # 创建状态栏
         self.create_status_bar()
-        
+
         self.show()
     
     def create_toolbar(self, parent_layout):
-        """创建工具栏"""
+        """
+        创建工具栏
+
+        创建包含打开文件、处理文档和保存结果按钮的工具栏，
+        并设置相应的点击事件处理器。
+
+        Args:
+            parent_layout: 父布局，用于添加工具栏布局
+        """
         toolbar_layout = QHBoxLayout()
-        
+
         # 打开文件按钮
         self.open_btn = QPushButton('打开Word文档')
         self.open_btn.clicked.connect(self.open_file)
         toolbar_layout.addWidget(self.open_btn)
-        
+
         # 处理按钮
         self.process_btn = QPushButton('处理文档')
         self.process_btn.clicked.connect(self.process_document)
         self.process_btn.setEnabled(False)
         toolbar_layout.addWidget(self.process_btn)
-        
+
         # 保存按钮
         self.save_btn = QPushButton('保存处理结果')
         self.save_btn.clicked.connect(self.save_results)
         self.save_btn.setEnabled(False)
         toolbar_layout.addWidget(self.save_btn)
-        
+
         toolbar_layout.addStretch()
-        
+
         parent_layout.addLayout(toolbar_layout)
     
     def create_main_content(self, parent_layout):
@@ -178,14 +246,19 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage('就绪')
     
     def open_file(self):
-        """打开Word文档"""
+        """
+        打开Word文档
+
+        打开文件选择对话框让用户选择Word文档，选定后加载文档
+        并显示预览内容。
+        """
         file_path, _ = QFileDialog.getOpenFileName(
-            self, 
-            "选择Word文档", 
-            "", 
+            self,
+            "选择Word文档",
+            "",
             "Word文档 (*.docx);;所有文件 (*)"
         )
-        
+
         if file_path:
             self.current_file_path = file_path
             self.load_document_preview(file_path)
@@ -227,27 +300,32 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "错误", f"加载文档时发生错误: {str(e)}")
     
     def process_document(self):
-        """处理文档"""
+        """
+        处理文档
+
+        启动后台处理线程来清理当前加载文档中的中英文边界空格。
+        处理过程中显示进度条并禁用相关按钮。
+        """
         if not self.current_file_path:
             return
-        
+
         # 显示进度条
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
-        
+
         # 禁用按钮
         self.process_btn.setEnabled(False)
         self.open_btn.setEnabled(False)
-        
+
         # 创建处理线程
         self.processing_thread = ProcessingThread(
             self.processor, self.cleaner, self.current_file_path
         )
-        
+
         self.processing_thread.progress_updated.connect(self.update_progress)
         self.processing_thread.processing_completed.connect(self.processing_finished)
         self.processing_thread.error_occurred.connect(self.processing_error)
-        
+
         self.processing_thread.start()
     
     def update_progress(self, value):

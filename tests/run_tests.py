@@ -1,3 +1,14 @@
+"""
+文件名: tests/run_tests.py
+功能描述: 测试运行脚本，用于快速测试核心功能和验证工具运行状态
+主要函数:
+  - test_basic_functionality(): 测试基本功能
+  - test_edge_cases(): 测试边界情况
+  - test_batch_processing(): 测试批量处理
+  - main(): 主函数，运行所有测试
+主要类: 无
+"""
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -15,13 +26,17 @@ from space_cleaner import SpaceCleaner
 
 
 def test_basic_functionality():
-    """测试基本功能"""
+    """
+    测试基本功能
+
+    测试文本分析和空格清理的核心功能，包括中英文混合文本的处理。
+    """
     print("=== 测试基本功能 ===")
-    
+
     # 创建分析器和清理器
     analyzer = TextAnalyzer()
     cleaner = SpaceCleaner()
-    
+
     # 测试用例
     test_cases = [
         "你好 hello world",
@@ -31,10 +46,10 @@ def test_basic_functionality():
         "hello world",  # 纯英文
         "只有中文",     # 纯中文
     ]
-    
+
     for i, text in enumerate(test_cases, 1):
         print(f"\n--- 测试用例 {i}: {text} ---")
-        
+
         # 分析文本
         analysis = analyzer.analyze_text(text)
         print(f"中文字符数: {analysis['chinese_chars']}")
@@ -42,13 +57,13 @@ def test_basic_functionality():
         print(f"空格数: {analysis['spaces']}")
         print(f"混合内容: {'是' if analysis['has_mixed_content'] else '否'}")
         print(f"边界空格数: {analysis['total_boundary_spaces']}")
-        
+
         # 清理文本
         cleaned = cleaner.clean_text(text)
         print(f"原始文本: '{text}'")
         print(f"清理后文本: '{cleaned['cleaned_text']}'")
         print(f"移除空格数: {cleaned['spaces_removed']}")
-        
+
         if cleaned['changes']:
             print("变更详情:")
             for change in cleaned['changes']:
