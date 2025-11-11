@@ -2,8 +2,7 @@
 .pytest_cache/
 .venv/
 
-胡明龙研究汇报表1-8_cleaned.docx
-胡明龙研究汇报表1-8.docx
+doc/
 gui/__pycache__/
 
 src/__pycache__/
