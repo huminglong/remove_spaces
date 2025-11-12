@@ -55,7 +55,7 @@ pip install -r requirements.txt
 
 ## 项目结构
 
-```
+```text
 remove_spaces/
 ├── main.py                    # 主程序入口
 ├── requirements.txt           # 依赖包列表
