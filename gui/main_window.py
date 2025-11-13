@@ -17,8 +17,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QFont, QIcon
 
-from document_processor import DocumentProcessor
-from space_cleaner import SpaceCleaner
+from src.document_processor import DocumentProcessor
+from src.space_cleaner import SpaceCleaner
 
 
 class ProcessingThread(QThread):

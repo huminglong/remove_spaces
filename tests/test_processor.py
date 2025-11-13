@@ -13,12 +13,12 @@ import pytest
 import sys
 import os
 
-# 将src目录添加到Python路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+# 将项目根目录添加到Python路径，以便导入src包
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from text_analyzer import TextAnalyzer
-from space_cleaner import SpaceCleaner
-from document_processor import DocumentProcessor
+from src.text_analyzer import TextAnalyzer
+from src.space_cleaner import SpaceCleaner
+from src.document_processor import DocumentProcessor
 
 
 class TestTextAnalyzer:
