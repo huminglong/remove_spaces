@@ -76,13 +76,16 @@ class SpaceCleaner:
     def _remove_boundary_spaces(self, text: str, boundaries: List[Dict]) -> Tuple[str, List[Dict]]:
         """
         移除边界空格
-        
+
+        根据边界信息列表，移除文本中指定位置的空格字符。
+        从后向前处理以避免位置偏移问题。
+
         Args:
             text: 原始文本
-            boundaries: 边界信息列表
-            
+            boundaries: 边界信息列表，每个元素包含start、end等字段
+
         Returns:
-            Tuple[str, List[Dict]]: (清理后的文本, 变更记录)
+            Tuple[str, List[Dict]]: 元组(清理后的文本, 变更记录列表)
         """
         if not boundaries:
             return text, []
@@ -120,10 +123,13 @@ class SpaceCleaner:
     def _normalize_spaces(self, text: str) -> str:
         """
         规范化空格，确保英文单词间有适当的空格
-        
+
+        处理多个连续空格的情况，并确保中英文边界处没有空格，
+        但保留英文单词之间的必要空格。
+
         Args:
             text: 输入文本
-            
+
         Returns:
             str: 规范化后的文本
         """

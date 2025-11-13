@@ -47,19 +47,49 @@ class TextAnalyzer:
         self.whitespace_regex = re.compile(r'\s+')
     
     def is_chinese_char(self, char: str) -> bool:
-        """判断字符是否为中文"""
+        """
+        判断字符是否为中文
+
+        使用Unicode范围匹配判断单个字符是否为中文字符。
+
+        Args:
+            char: 待判断的字符
+
+        Returns:
+            bool: 如果是中文字符返回True，否则返回False
+        """
         if len(char) != 1:
             return False
         return bool(self.chinese_regex.match(char))
     
     def is_english_char(self, char: str) -> bool:
-        """判断字符是否为英文（包括字母、数字）"""
+        """
+        判断字符是否为英文（包括字母、数字）
+
+        检查字符是否在英文字符集合中，包括大小写字母、数字和常见符号。
+
+        Args:
+            char: 待判断的字符
+
+        Returns:
+            bool: 如果是英文字符返回True，否则返回False
+        """
         if len(char) != 1:
             return False
         return char in self.english_chars
     
     def is_whitespace(self, char: str) -> bool:
-        """判断字符是否为空格"""
+        """
+        判断字符是否为空格
+
+        判断字符是否为空白字符（包括空格、制表符、换行符等）。
+
+        Args:
+            char: 待判断的字符
+
+        Returns:
+            bool: 如果是空白字符返回True，否则返回False
+        """
         return char.isspace()
     
     def find_chinese_english_boundaries(self, text: str) -> List[Dict[str, int]]:
@@ -209,7 +239,18 @@ class TextAnalyzer:
         return segments
     
     def _simulate_processing(self, text: str, boundaries: List[Dict]) -> str:
-        """模拟处理过程，用于预览"""
+        """
+        模拟处理过程，用于预览
+
+        模拟移除边界空格的过程，用于在实际处理前预览结果。
+
+        Args:
+            text: 原始文本
+            boundaries: 边界信息列表
+
+        Returns:
+            str: 模拟处理后的文本
+        """
         if not boundaries:
             return text
         

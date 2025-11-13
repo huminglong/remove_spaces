@@ -187,7 +187,15 @@ class MainWindow(QMainWindow):
         parent_layout.addLayout(toolbar_layout)
     
     def create_main_content(self, parent_layout):
-        """创建主要内容区域"""
+        """
+        创建主要内容区域
+
+        创建并布局主要内容区域，包括原始文本展示区、处理后文本展示区、
+        统计信息显示、进度条和详细信息表格。
+
+        Args:
+            parent_layout: 父布局，用于添加主内容组件
+        """
         # 创建分割器
         splitter = QSplitter(Qt.Horizontal)
         
@@ -242,7 +250,11 @@ class MainWindow(QMainWindow):
         parent_layout.addLayout(bottom_layout)
     
     def create_status_bar(self):
-        """创建状态栏"""
+        """
+        创建状态栏
+
+        初始化窗口底部的状态栏，用于显示应用程序的当前状态信息。
+        """
         self.statusBar().showMessage('就绪')
     
     def open_file(self):
@@ -264,7 +276,15 @@ class MainWindow(QMainWindow):
             self.load_document_preview(file_path)
     
     def load_document_preview(self, file_path):
-        """加载文档并显示预览"""
+        """
+        加载文档并显示预览
+
+        加载Word文档，提取其中的文本内容并在界面上显示预览。
+        同时更新文档统计信息并启用处理按钮。
+
+        Args:
+            file_path: Word文档的完整路径
+        """
         try:
             # 加载文档
             if not self.processor.load_document(file_path):
@@ -329,11 +349,27 @@ class MainWindow(QMainWindow):
         self.processing_thread.start()
     
     def update_progress(self, value):
-        """更新进度条"""
+        """
+        更新进度条
+
+        接收后台线程发送的进度更新信号，并更新进度条显示。
+
+        Args:
+            value: 进度百分比（0-100）
+        """
         self.progress_bar.setValue(value)
     
     def processing_finished(self, results, statistics):
-        """处理完成"""
+        """
+        处理完成
+
+        处理后台线程处理完成后的回调，显示处理后的文本、
+        统计信息和详细变更表格。
+
+        Args:
+            results: 处理结果列表
+            statistics: 统计信息字典
+        """
         self.processing_results = results
         
         # 显示处理后的文本
@@ -366,7 +402,15 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "完成", "文档处理完成！")
     
     def processing_error(self, error_message):
-        """处理错误"""
+        """
+        处理错误
+
+        处理后台线程发生错误时的回调，隐藏进度条、
+        恢复按钮状态并显示错误消息。
+
+        Args:
+            error_message: 错误消息字符串
+        """
         self.progress_bar.setVisible(False)
         self.process_btn.setEnabled(True)
         self.open_btn.setEnabled(True)
@@ -374,7 +418,15 @@ class MainWindow(QMainWindow):
         QMessageBox.critical(self, "错误", error_message)
     
     def show_details_table(self, results):
-        """显示详细信息表格"""
+        """
+        显示详细信息表格
+
+        在表格中显示每个文本段的处理详情，包括原始文本、
+        处理后文本、移除的空格数和变更详情。
+
+        Args:
+            results: 处理结果列表
+        """
         self.details_table.setVisible(True)
         self.details_table.setRowCount(len(results))
         
@@ -397,7 +449,12 @@ class MainWindow(QMainWindow):
         self.details_table.resizeColumnsToContents()
     
     def save_results(self):
-        """保存处理结果到processed_documents文件夹"""
+        """
+        保存处理结果到processed_documents文件夹
+
+        弹出文件保存对话框，默认保存到processed_documents目录，
+        文件名为原文件名加_cleaned后缀。保存时保持原文档的所有格式。
+        """
         if not self.processing_results or not self.current_file_path:
             return
         
@@ -445,7 +502,12 @@ class MainWindow(QMainWindow):
 
 
 def main():
-    """主函数"""
+    """
+    主函数
+
+    创建QApplication应用程序实例，设置应用样式，
+    初始化并显示主窗口，然后进入事件循环。
+    """
     app = QApplication(sys.argv)
     
     # 设置应用样式

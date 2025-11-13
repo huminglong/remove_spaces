@@ -71,7 +71,12 @@ def test_basic_functionality():
 
 
 def test_edge_cases():
-    """测试边界情况"""
+    """
+    测试边界情况
+
+    测试各种边界场景，包括空字符串、只有空格、多个空格、
+    包含特殊字符（制表符、换行符）和标点符号的文本。
+    """
     print("\n\n=== 测试边界情况 ===")
     
     cleaner = SpaceCleaner()
@@ -92,7 +97,12 @@ def test_edge_cases():
 
 
 def test_batch_processing():
-    """测试批量处理"""
+    """
+    测试批量处理
+
+    测试SpaceCleaner的批量处理能力，包括多个文本的同时处理
+    和统计信息的生成。
+    """
     print("\n\n=== 测试批量处理 ===")
     
     cleaner = SpaceCleaner()
@@ -116,7 +126,15 @@ def test_batch_processing():
 
 
 def main():
-    """主函数"""
+    """
+    主函数
+
+    执行所有测试函数，包括基本功能测试、边界情况测试和批量处理测试。
+    捕获并报告测试过程中的异常。
+
+    Returns:
+        int: 成功返回0，失败返回1
+    """
     try:
         test_basic_functionality()
         test_edge_cases()

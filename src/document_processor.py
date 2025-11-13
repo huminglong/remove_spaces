@@ -110,7 +110,18 @@ class DocumentProcessor:
                 self.original_structure.append(table_structure)
     
     def _extract_runs(self, paragraph) -> List[Dict]:
-        """提取段落中的runs（文本片段）及其完整格式信息"""
+        """
+        提取段落中的runs（文本片段）及其完整格式信息
+
+        遍历段落中的所有run对象，提取每个run的文本内容和格式属性，
+        包括字体、颜色、样式等信息。
+
+        Args:
+            paragraph: Word段落对象
+
+        Returns:
+            List[Dict]: runs信息列表，每个字典包含文本内容和格式属性
+        """
         if paragraph is None:
             return []
             
@@ -131,7 +142,15 @@ class DocumentProcessor:
         return runs
     
     def get_all_text(self) -> List[str]:
-        """获取所有文本内容，用于处理"""
+        """
+        获取所有文本内容，用于处理
+
+        遍历文档结构，提取所有段落和表格单元格中的文本内容，
+        返回按顺序排列的文本列表。
+
+        Returns:
+            List[str]: 文本内容列表
+        """
         texts = []
         for item in self.original_structure:
             if item['type'] == 'paragraph':
@@ -188,7 +207,17 @@ class DocumentProcessor:
             return False
     
     def _update_paragraph_text(self, paragraph, new_text: str) -> None:
-        """更新段落文本，保持所有格式属性不变"""
+        """
+        更新段落文本，保持所有格式属性不变
+
+        该方法在段落级别更新文本内容，尽可能保留原有的格式属性。
+        对于单个run的段落，直接替换文本并保持格式；
+        对于多个run的段落，使用第一个run的格式应用于所有新文本。
+
+        Args:
+            paragraph: Word段落对象
+            new_text: 新的文本内容
+        """
         # 基于run级别更新文本，保持原有格式
         if not paragraph.runs:
             # 如果没有runs，直接添加
@@ -248,7 +277,15 @@ class DocumentProcessor:
                 new_run.font.color.rgb = run_info['font_color']
     
     def _update_cell_text(self, cell, new_text: str) -> None:
-        """更新单元格文本，保持所有格式属性不变"""
+        """
+        更新单元格文本，保持所有格式属性不变
+
+        清空单元格中的旧文本，然后添加新文本内容。
+
+        Args:
+            cell: Word表格单元格对象
+            new_text: 新的文本内容
+        """
         # 清空单元格内容但保持格式
         cell.text = ''
         
@@ -296,7 +333,14 @@ class DocumentProcessor:
             return False
     
     def get_document_info(self) -> Dict:
-        """获取文档信息"""
+        """
+        获取文档信息
+
+        返回文档的基本统计信息，包括段落数、表格数等。
+
+        Returns:
+            Dict: 文档信息字典，包含paragraph_count、table_count等字段
+        """
         if not self.document:
             return {}
         

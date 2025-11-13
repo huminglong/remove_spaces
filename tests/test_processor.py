@@ -37,7 +37,11 @@ class TestTextAnalyzer:
         self.analyzer = TextAnalyzer()
     
     def test_chinese_char_detection(self):
-        """测试中文字符检测"""
+        """
+        测试中文字符检测
+
+        验证TextAnalyzer能够正确识别中文字符并区分中英文。
+        """
         assert self.analyzer.is_chinese_char('中') == True
         assert self.analyzer.is_chinese_char('国') == True
         assert self.analyzer.is_chinese_char('a') == False
@@ -45,7 +49,11 @@ class TestTextAnalyzer:
         assert self.analyzer.is_chinese_char(' ') == False
     
     def test_english_char_detection(self):
-        """测试英文字符检测"""
+        """
+        测试英文字符检测
+
+        验证TextAnalyzer能够正确识别英文字母、数字和符号。
+        """
         assert self.analyzer.is_english_char('a') == True
         assert self.analyzer.is_english_char('Z') == True
         assert self.analyzer.is_english_char('1') == True
@@ -54,7 +62,11 @@ class TestTextAnalyzer:
         assert self.analyzer.is_english_char('中') == False
     
     def test_whitespace_detection(self):
-        """测试空格检测"""
+        """
+        测试空格检测
+
+        验证TextAnalyzer能够正确识别各种空白字符（空格、制表符、换行符）。
+        """
         assert self.analyzer.is_whitespace(' ') == True
         assert self.analyzer.is_whitespace('\t') == True
         assert self.analyzer.is_whitespace('\n') == True
@@ -62,7 +74,11 @@ class TestTextAnalyzer:
         assert self.analyzer.is_whitespace('中') == False
     
     def test_find_chinese_english_boundaries(self):
-        """测试中英文边界检测"""
+        """
+        测试中英文边界检测
+
+        验证TextAnalyzer能够正确找到中英文之间的空格位置。
+        """
         # 测试基本的中英文边界
         text = "你好 hello world"
         boundaries = self.analyzer.find_chinese_english_boundaries(text)
@@ -81,7 +97,11 @@ class TestTextAnalyzer:
         assert len(boundaries3) == 0
     
     def test_analyze_text(self):
-        """测试文本分析"""
+        """
+        测试文本分析
+
+        验证TextAnalyzer能够正确统计文本中的中文、英文字符数和边界空格数。
+        """
         text = "你好 hello world"
         analysis = self.analyzer.analyze_text(text)
         
@@ -93,7 +113,11 @@ class TestTextAnalyzer:
         assert analysis['total_boundary_spaces'] == 1
     
     def test_get_text_segments(self):
-        """测试文本段分割"""
+        """
+        测试文本段分割
+
+        验证TextAnalyzer能够将混合文本正确分割为中文和英文段。
+        """
         text = "你好hello world"
         segments = self.analyzer.get_text_segments(text)
         
@@ -114,11 +138,19 @@ class TestSpaceCleaner:
     """测试空格清理器"""
     
     def setup_method(self):
-        """设置测试方法"""
+        """
+        设置测试方法
+
+        在每个测试方法执行前创庺SpaceCleaner实例。
+        """
         self.cleaner = SpaceCleaner()
     
     def test_clean_text_basic(self):
-        """测试基本的文本清理"""
+        """
+        测试基本的文本清理
+
+        验证SpaceCleaner能够正确移除中英文边界处的空格。
+        """
         text = "你好 hello world"
         result = self.cleaner.clean_text(text)
         
@@ -128,7 +160,11 @@ class TestSpaceCleaner:
         assert len(result['changes']) == 1
     
     def test_clean_text_multiple_boundaries(self):
-        """测试多个边界的清理"""
+        """
+        测试多个边界的清理
+
+        验证SpaceCleaner能够处理包含多个中英文边界的文本。
+        """
         text = "hello 你好 world 世界 test"
         result = self.cleaner.clean_text(text)
         
@@ -138,7 +174,11 @@ class TestSpaceCleaner:
         assert result['spaces_removed'] >= 2
     
     def test_clean_text_no_changes(self):
-        """测试不需要清理的文本"""
+        """
+        测试不需要清理的文本
+
+        验证对于纯英文文本，SpaceCleaner不会进行任何修改。
+        """
         text = "hello world"
         result = self.cleaner.clean_text(text)
         
@@ -148,7 +188,11 @@ class TestSpaceCleaner:
         assert len(result['changes']) == 0
     
     def test_clean_text_preserve_english_spaces(self):
-        """测试保留英文单词间的空格"""
+        """
+        测试保留英文单词间的空格
+
+        验证SpaceCleaner在移除中英文边界空格时，保留英文单词之间的正常空格。
+        """
         text = "你好 hello beautiful world"
         result = self.cleaner.clean_text(text)
         
@@ -158,7 +202,11 @@ class TestSpaceCleaner:
         assert "你好hello" in result['cleaned_text']
     
     def test_clean_multiple_texts(self):
-        """测试批量清理"""
+        """
+        测试批量清理
+
+        验证SpaceCleaner能够批量处理多个文本并返回正确的结果。
+        """
         texts = [
             "你好 hello",
             "world 世界",
@@ -173,7 +221,11 @@ class TestSpaceCleaner:
         assert results[2]['spaces_removed'] == 0  # 第三个无变更
     
     def test_get_processing_statistics(self):
-        """测试处理统计"""
+        """
+        测试处理统计
+
+        验证SpaceCleaner能够正确计算处理统计信息。
+        """
         results = [
             {'spaces_removed': 2},
             {'spaces_removed': 0},
@@ -195,21 +247,37 @@ class TestDocumentProcessor:
     """测试文档处理器"""
     
     def setup_method(self):
-        """设置测试方法"""
+        """
+        设置测试方法
+
+        在每个测试方法执行前创建DocumentProcessor实例。
+        """
         self.processor = DocumentProcessor()
     
     def test_load_nonexistent_document(self):
-        """测试加载不存在的文档"""
+        """
+        测试加载不存在的文档
+
+        验证DocumentProcessor在尝试加载不存在的文档时返回False。
+        """
         result = self.processor.load_document("nonexistent.docx")
         assert result == False
     
     def test_get_document_info_empty(self):
-        """测试空文档信息"""
+        """
+        测试空文档信息
+
+        验证在没有加载文档时，get_document_info返回空字典。
+        """
         info = self.processor.get_document_info()
         assert info == {}
     
     def test_extract_runs_empty_paragraph(self):
-        """测试空段落的runs提取"""
+        """
+        测试空runs提取
+
+        验证对于None输入，_extract_runs方法返回空列表。
+        """
         # 这里需要模拟一个段落对象，但由于没有实际的Word文档，
         # 我们只能测试空输入的情况
         runs = self.processor._extract_runs(None)
@@ -221,12 +289,20 @@ class TestIntegration:
     """集成测试"""
     
     def setup_method(self):
-        """设置测试方法"""
+        """
+        设置测试方法
+
+        在每个测试方法执行前创建所需的分析器和清理器实例。
+        """
         self.analyzer = TextAnalyzer()
         self.cleaner = SpaceCleaner()
     
     def test_complete_workflow(self):
-        """测试完整工作流程"""
+        """
+        测试完整工作流程
+
+        验证从文本分析到空格清理的完整工作流程是否正常。
+        """
         # 模拟包含中英文混合的文本
         test_texts = [
             "这是一个测试 hello world",
@@ -258,7 +334,11 @@ class TestIntegration:
                 assert cleaned['cleaned_text'] == text
     
     def test_complex_mixed_content(self):
-        """测试复杂的中英文混合内容"""
+        """
+        测试复杂的中英文混合内容
+
+        验证对于包含多个中英文转换边界的复杂文本，能够正确处理。
+        """
         complex_text = "人工智能 AI 和 machine learning 机器学习 是 current hot topics 热门话题"
         
         # 分析
