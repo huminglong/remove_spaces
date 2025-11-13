@@ -9,8 +9,10 @@
   - SpaceCleaner: 空格清理核心类
 """
 
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 from src.text_analyzer import TextAnalyzer
+from src.exceptions import InvalidTextError
+from src.logger_config import setup_logger
 
 
 class SpaceCleaner:
@@ -31,18 +33,40 @@ class SpaceCleaner:
         创建SpaceCleaner实例并初始化文本分析器。
         """
         self.analyzer = TextAnalyzer()
+        self.logger = setup_logger(__name__)
     
     def clean_text(self, text: str) -> Dict:
         """
         清理文本中的中英文边界空格
+        
+        执行输入验证并清理文本中中英文边界的多余空格。
         
         Args:
             text: 输入文本
             
         Returns:
             Dict: 处理结果，包含清理后的文本和统计信息
+            
+        Raises:
+            InvalidTextError: 当输入文本无效时抛出
+            
+        Examples:
+            >>> cleaner = SpaceCleaner()
+            >>> result = cleaner.clean_text("你好 world")
+            >>> print(result['cleaned_text'])
+            '你好world'
         """
+        # 输入验证
+        if text is None:
+            self.logger.error("输入文本不能为None")
+            raise InvalidTextError("输入文本不能为None")
+        
+        if not isinstance(text, str):
+            self.logger.error(f"输入必须是字符串类型，实际类型: {type(text)}")
+            raise InvalidTextError(f"输入必须是字符串类型，实际类型: {type(text)}")
+        
         if not text:
+            self.logger.debug("输入为空字符串，直接返回")
             return {
                 'original_text': text,
                 'cleaned_text': text,
@@ -50,35 +74,54 @@ class SpaceCleaner:
                 'changes': []
             }
         
-        # 分析文本
-        analysis = self.analyzer.analyze_text(text)
-        boundaries = analysis['boundaries']
-        
-        if not boundaries:
+        try:
+            self.logger.debug(f"开始清理文本，长度: {len(text)}")
+            
+            # 分析文本
+            analysis = self.analyzer.analyze_text(text)
+            boundaries = analysis['boundaries']
+            
+            if not boundaries:
+                self.logger.debug("未发现需要清理的边界空格")
+                return {
+                    'original_text': text,
+                    'cleaned_text': text,
+                    'spaces_removed': 0,
+                    'changes': []
+                }
+            
+            # 清理空格
+            cleaned_text, changes = self._remove_boundary_spaces(text, boundaries)
+            
+            self.logger.debug(f"清理完成，移除了 {len(changes)} 处空格")
+            return {
+                'original_text': text,
+                'cleaned_text': cleaned_text,
+                'spaces_removed': len(changes),
+                'changes': changes,
+                'analysis': analysis
+            }
+            
+        except InvalidTextError:
+            # 重新抛出验证错误
+            raise
+        except Exception as e:
+            self.logger.error(f"清理文本时发生错误: {str(e)}", exc_info=True)
+            # 发生错误时返回原文本
             return {
                 'original_text': text,
                 'cleaned_text': text,
                 'spaces_removed': 0,
-                'changes': []
+                'changes': [],
+                'error': str(e)
             }
-        
-        # 清理空格
-        cleaned_text, changes = self._remove_boundary_spaces(text, boundaries)
-        
-        return {
-            'original_text': text,
-            'cleaned_text': cleaned_text,
-            'spaces_removed': len(changes),
-            'changes': changes,
-            'analysis': analysis
-        }
     
     def _remove_boundary_spaces(self, text: str, boundaries: List[Dict]) -> Tuple[str, List[Dict]]:
         """
-        移除边界空格
+        移除边界空格(内存优化版本)
 
-        根据边界信息列表，移除文本中指定位置的空格字符。
-        从后向前处理以避免位置偏移问题。
+        使用字符串分段和join替代完整字符列表,减少内存占用。
+        对于大文档,这种方法比创建完整字符列表更高效。
 
         Args:
             text: 原始文本
@@ -86,36 +129,53 @@ class SpaceCleaner:
 
         Returns:
             Tuple[str, List[Dict]]: 元组(清理后的文本, 变更记录列表)
+            
+        Examples:
+            >>> cleaner = SpaceCleaner()
+            >>> text = "你好 world"
+            >>> boundaries = [{'start': 2, 'end': 3, 'type': 'boundary', 'description': 'test'}]
+            >>> cleaned, changes = cleaner._remove_boundary_spaces(text, boundaries)
         """
         if not boundaries:
             return text, []
         
-        # 创建字符列表以便修改
-        chars = list(text)
-        changes = []
+        # 按起始位置排序边界
+        sorted_boundaries = sorted(boundaries, key=lambda x: x['start'])
         
-        # 从后向前处理，避免位置偏移
-        for boundary in reversed(boundaries):
+        # 使用字符串分段,避免创建完整字符列表
+        segments = []
+        changes = []
+        last_end = 0
+        
+        for boundary in sorted_boundaries:
             start = boundary['start']
             end = boundary['end']
             
+            # 添加上一个边界结束到当前边界开始之间的文本
+            if start > last_end:
+                segments.append(text[last_end:start])
+            
             # 记录变更
             removed_spaces = text[start:end]
-            if removed_spaces:
+            if removed_spaces.strip():  # 只记录非空的移除
                 changes.append({
                     'position': start,
                     'removed': removed_spaces,
-                    'type': boundary['type'],
-                    'description': boundary['description']
+                    'type': boundary.get('type', 'boundary'),
+                    'description': boundary.get('description', 'Removed space')
                 })
             
-            # 移除边界空格
-            for i in range(start, min(end, len(chars))):
-                chars[i] = ''
+            # 跳过边界空格(不添加到segments中)
+            last_end = end
         
-        cleaned_text = ''.join(chars)
+        # 添加最后一个边界之后的文本
+        if last_end < len(text):
+            segments.append(text[last_end:])
         
-        # 清理可能产生的多余空格（保留英文单词间的空格）
+        # 合并所有段落
+        cleaned_text = ''.join(segments)
+        
+        # 清理可能产生的多余空格
         cleaned_text = self._normalize_spaces(cleaned_text)
         
         return cleaned_text, changes

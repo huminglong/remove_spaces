@@ -13,8 +13,18 @@
 """
 
 import docx
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 import re
+from pathlib import Path
+
+from src.exceptions import (
+    DocumentLoadError,
+    DocumentStructureError,
+    TextUpdateError,
+    DocumentSaveError
+)
+from src.logger_config import setup_logger
+from config.settings import settings
 
 
 class DocumentProcessor:
@@ -37,24 +47,120 @@ class DocumentProcessor:
         """
         self.document = None
         self.original_structure = []
+        self.logger = setup_logger(__name__)
+    
+    def __enter__(self):
+        """
+        上下文管理器入口
+        
+        支持with语句，方便资源管理。
+        
+        Returns:
+            DocumentProcessor: 返回self以支持with语句
+            
+        Examples:
+            >>> with DocumentProcessor() as processor:
+            ...     processor.load_document("test.docx")
+            ...     # 自动清理资源
+        """
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        上下文管理器出口
+        
+        确保资源被正确释放。
+        
+        Args:
+            exc_type: 异常类型
+            exc_val: 异常值
+            exc_tb: 异常追踪信息
+            
+        Returns:
+            bool: False表示不抑制异常
+        """
+        self.close()
+        return False
+    
+    def close(self):
+        """
+        关闭文档并释放资源
+        
+        清理文档对象和结构信息，释放内存。
+        
+        Examples:
+            >>> processor = DocumentProcessor()
+            >>> processor.load_document("test.docx")
+            >>> processor.close()
+        """
+        if self.document:
+            self.logger.debug("关闭文档处理器，释放资源")
+            self.document = None
+            self.original_structure = []
     
     def load_document(self, file_path: str) -> bool:
         """
         加载Word文档
+        
+        执行完整的输入验证,包括文件存在性、格式、大小等检查。
         
         Args:
             file_path: 文档路径
             
         Returns:
             bool: 加载成功返回True，否则返回False
+            
+        Raises:
+            DocumentLoadError: 当文档加载失败时抛出
+            
+        Examples:
+            >>> processor = DocumentProcessor()
+            >>> processor.load_document("test.docx")
+            True
         """
+        # 输入验证
+        if not file_path:
+            self.logger.error("文件路径不能为空")
+            raise ValueError("文件路径不能为空")
+        
+        if not isinstance(file_path, (str, Path)):
+            self.logger.error(f"文件路径必须是字符串或Path对象，实际类型: {type(file_path)}")
+            raise TypeError(f"文件路径必须是字符串或Path对象，实际类型: {type(file_path)}")
+        
+        file_path = Path(file_path)
+        
+        # 文件存在性检查
+        if not file_path.exists():
+            self.logger.error(f"文件不存在: {file_path}")
+            raise FileNotFoundError(f"文件不存在: {file_path}")
+        
+        # 文件格式检查
+        if file_path.suffix.lower() not in settings.DocumentProcessing.SUPPORTED_EXTENSIONS:
+            self.logger.error(f"不支持的文件格式: {file_path.suffix}，仅支持 {settings.DocumentProcessing.SUPPORTED_EXTENSIONS}")
+            raise ValueError(f"不支持的文件格式: {file_path.suffix}")
+        
+        # 文件大小检查
+        file_size = file_path.stat().st_size
+        if file_size > settings.DocumentProcessing.MAX_FILE_SIZE:
+            self.logger.error(f"文件过大: {file_size} 字节，最大支持 {settings.DocumentProcessing.MAX_FILE_SIZE} 字节")
+            raise ValueError(f"文件过大，最大支持 {settings.DocumentProcessing.MAX_FILE_SIZE / (1024*1024):.1f}MB")
+        
         try:
-            self.document = docx.Document(file_path)
+            self.logger.info(f"开始加载文档: {file_path}")
+            self.document = docx.Document(str(file_path))
             self._extract_document_structure()
+            self.logger.info(f"成功加载文档: {file_path}，包含 {len(self.original_structure)} 个元素")
             return True
+        except FileNotFoundError:
+            raise
+        except ValueError:
+            raise
+        except PermissionError as e:
+            self.logger.error(f"权限不足，无法访问文件: {file_path}", exc_info=True)
+            raise PermissionError(f"权限不足，无法访问文件: {file_path}") from e
         except Exception as e:
-            print(f"加载文档失败: {e}")
-            return False
+            self.logger.error(f"加载文档失败: {file_path}", exc_info=True)
+            raise DocumentLoadError(f"加载文档失败: {str(e)}") from e
     
     def _extract_document_structure(self) -> None:
         """
@@ -296,19 +402,52 @@ class DocumentProcessor:
         """
         保存文档到指定路径
         
+        执行完整的输入验证和错误处理。
+        
         Args:
             file_path: 保存路径
             
         Returns:
-            bool: 保存成功返回True，否则返回False
+            bool: 保存成功返回True
+            
+        Raises:
+            DocumentSaveError: 当保存失败时抛出
+            
+        Examples:
+            >>> processor = DocumentProcessor()
+            >>> processor.load_document("input.docx")
+            >>> processor.save_document("output.docx")
+            True
         """
+        # 输入验证
+        if not file_path:
+            self.logger.error("保存路径不能为空")
+            raise ValueError("保存路径不能为空")
+        
+        if not self.document:
+            self.logger.error("没有加载的文档，无法保存")
+            raise DocumentSaveError("没有加载的文档，无法保存")
+        
+        file_path = Path(file_path)
+        
+        # 确保目标目录存在
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        
         try:
-            self.document.save(file_path)
+            self.logger.info(f"开始保存文档: {file_path}")
+            self.document.save(str(file_path))
+            self.logger.info(f"成功保存文档: {file_path}")
             return True
             
+        except PermissionError as e:
+            self.logger.error(f"权限不足，无法保存文件: {file_path}", exc_info=True)
+            raise PermissionError(f"权限不足，无法保存文件: {file_path}") from e
+        except OSError as e:
+            self.logger.error(f"保存文档时发生OS错误: {file_path}", exc_info=True)
+            raise DocumentSaveError(f"保存文档失败: {str(e)}") from e
         except Exception as e:
-            print(f"保存文档失败: {e}")
-            return False
+            self.logger.error(f"保存文档失败: {file_path}", exc_info=True)
+            raise DocumentSaveError(f"保存文档失败: {str(e)}") from e
     
     def save_as_new_document(self, file_path: str, processed_texts: List[str]) -> bool:
         """
