@@ -10,7 +10,7 @@
 """
 
 from typing import List, Dict, Tuple
-from text_analyzer import TextAnalyzer
+from src.text_analyzer import TextAnalyzer
 
 
 class SpaceCleaner:
