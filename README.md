@@ -78,6 +78,45 @@ remove_spaces/
 
 ## 核心模块详细说明
 
+## 打包成 Windows 可执行文件 (.exe)
+
+如果你想把本项目打包成独立的 Windows 可执行文件（exe），可以使用 PyInstaller。仓库里已经包含一个方便的 PowerShell 打包脚本 `./scripts/build_exe.ps1`，脚本会自动激活存放在项目根目录的虚拟环境 `.venv`，并用 PyInstaller 进行打包。
+
+推荐步骤（在 Windows PowerShell 中）：
+
+```powershell
+# 进入项目根目录
+cd \path\to\remove_spaces
+
+# 创建并激活虚拟环境（如果尚未创建）
+python -m venv .venv
+. .venv\Scripts\Activate.ps1
+
+# 安装项目运行时依赖
+pip install -r requirements.txt
+
+# 安装开发 / 打包工具（包含 pyinstaller）
+pip install -r requirements-dev.txt
+
+# 使用脚本打包为单文件 GUI exe（默认不显示控制台）
+./scripts/build_exe.ps1 -OneFile -NoConsole -Name RemoveSpaces
+
+# 打包完成后生成文件位于 dist\RemoveSpaces 或 dist\RemoveSpaces.exe（单文件）
+```
+
+常用参数：
+
+- `-OneFile`：生成单个 exe 文件（--onefile）
+- `-NoConsole`：GUI 程序通常不需要控制台（--noconsole）
+- `-Entry`：指定入口文件，默认 `main.py`
+- `-Name`：输出文件名，默认 `RemoveSpaces`
+
+注意事项：
+
+- PyInstaller 会将运行时依赖打包进 exe，生成的文件可能比较大。
+- 确保 `.venv` 中安装的依赖与 `requirements.txt` 保持一致，打包时使用相同的 Python 版本（推荐 Python 3.11）。
+- 如果使用 PyQt5 GUI，PyInstaller 会自动收集大多数 Qt 运行时文件；如遇到资源缺失请查看 PyInstaller 的日志并根据提示添加 `--add-data` 或编写 hooks。
+
 ### 📁 src/ 核心模块
 
 #### `document_processor.py` - 文档处理器
