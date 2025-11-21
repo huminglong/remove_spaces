@@ -515,6 +515,7 @@ def main():
     
     # 创建并显示主窗口
     main_window = MainWindow()
+    main_window.show()  # 显示主窗口
     
     sys.exit(app.exec_())
 

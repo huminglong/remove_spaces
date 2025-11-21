@@ -11,8 +11,17 @@
 import sys
 import os
 
-# 将src目录添加到Python路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+# PyInstaller运行时的资源路径处理
+if getattr(sys, 'frozen', False):
+    # 打包后的exe运行环境
+    application_path = sys._MEIPASS
+else:
+    # 开发环境
+    application_path = os.path.dirname(os.path.abspath(__file__))
+
+# 将必要的目录添加到Python路径
+sys.path.insert(0, os.path.join(application_path, 'src'))
+sys.path.insert(0, application_path)
 
 try:
     from gui.main_window import main
@@ -20,6 +29,7 @@ except ImportError as e:
     print(f"导入错误: {e}")
     import traceback
     traceback.print_exc()
+    input("按Enter键退出...")
     sys.exit(1)
 
 
@@ -28,4 +38,7 @@ if __name__ == '__main__':
         main()
     except Exception as e:
         print(f"程序运行出错: {e}")
+        import traceback
+        traceback.print_exc()
+        input("按Enter键退出...")
         sys.exit(1)
